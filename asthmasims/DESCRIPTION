@@ -1,0 +1,20 @@
+Package: asthmasims
+Type: Package
+Title: Asthma Trial Simulations
+Version: 0.1.0
+Authors@R: 
+    person("James", "Totterdell", , "james.totterdell@sydney.edu.au", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9459-2566"))
+Description: Functions for Asthma Trial simulations.
+SystemRequirements: stan
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports: 
+    cmdstanr,
+    data.table,
+    extraDistr,
+    posterior,
+    stringr
