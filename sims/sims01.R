@@ -8,6 +8,7 @@ suppressMessages({
     library(data.table)
     library(optparse)
     library(qs)
+    library(pbmcapply)
 })
 
 
@@ -23,7 +24,7 @@ option_list <- list(
         help = "number of simulations to run under each configuration [default %default]", metavar = "number"
     ),
     make_option(c("-f", "--filename"),
-        type = "character", default = "sims_",
+        type = "character", default = "sims_scenario01_",
         help = "the output file name for the simulations [default %default]", metavar = "character"
     )
 )
@@ -59,8 +60,10 @@ cfg <- CJ(
     n_seq = list(c(100, 150, 200)),
     alpha = list(alp),
     eta = list(
-        c(0, 2, 0),
-        c(0, 2, 2)
+        c(0, 3.5, 0),
+        c(0, 3.5, 3.5),
+        c(0, 3.5, 2),
+        c(0, 3.5, 0.95)
     ),
     sorted = FALSE
 )
@@ -90,8 +93,7 @@ run_row <- seq_len(nrow(cfg))
 for (z in run_row) {
     start_time <- Sys.time()
 
-    res <- mclapply(seq_len(cfg[z][["sims"]]), function(j) {
-        cat("Sim: ", j, " of ", cfg[z]$sims, "begun.\n")
+    res <- pbmclapply(seq_len(cfg[z][["sims"]]), function(j) {
         sim_asthma_trial(
             mod,
             n_seq = cfg[z][["n_seq"]][[1]],
@@ -104,7 +106,7 @@ for (z in run_row) {
             show_messages = FALSE,
             refresh = 0
         )
-    }, mc.cores = num_cores)
+    }, mc.cores = num_cores, ignore.interactive = TRUE)
 
     resl_alpha <- rbindlist(lapply(res, \(x) x[["alpha"]]), idcol = "trial")
     resl_contr <- rbindlist(lapply(res, \(x) x[["contr"]]), idcol = "trial")
