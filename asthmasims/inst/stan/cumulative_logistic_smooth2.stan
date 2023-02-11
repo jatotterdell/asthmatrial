@@ -34,7 +34,7 @@ model {
   // - beta ~ Normal(0, beta_sd)
   // - p(eta = 0) ~ Dirichlet(p_par)
   target += std_normal_lpdf(beta_raw) +
-            exponential_lpdf(gamma | 1) - 1 * exponential_lccdf(0 | 1);
+            exponential_lpdf(gamma | 1);
   // likelihood
   if (!prior) {
     for(n in 1:N)
