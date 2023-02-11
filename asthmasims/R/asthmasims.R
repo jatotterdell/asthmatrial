@@ -10,7 +10,8 @@ update_model <- function(mod, moddat, ...) {
     data = moddat, ...
   ))
   draws <- posterior::as_draws_rvars(fit$draws(c("alpha", "beta", "mu")))
-  return(draws)
+  diags <- unlist(fit$diagnostic_summary())
+  return(list(draws = draws, diags = diags))
 }
 
 
@@ -66,6 +67,13 @@ sim_asthma_trial <- function(mod,
       "contrast" = c("3v1", "3v2", "2v1")
     )
   )
+  diags <- matrix(
+    0, n_int, 3,
+    dimnames = list(
+      "analysis" = seq_len(n_int),
+      "diagnostic" = c("num_divergent", "num_max_treedepth", "ebfmi")
+    )
+  )
   pr_ctr_lt10 <- pr_ctr_lt0 <- hi_ctr <- lo_ctr <- v_ctr <- e_ctr
 
   # Generate data
@@ -83,7 +91,9 @@ sim_asthma_trial <- function(mod,
     mod[[2]]$yc <- yc - 1
     mod[[2]]$N <- n_seq[i]
 
-    fit <- update_model(mod[[1]], mod[[2]], ...)
+    fitdat <- update_model(mod[[1]], mod[[2]], ...)
+    fit <- fitdat$draws
+    diags[i, ] <- fitdat$diags
     # Define contrasts
     ctr <- c(
       fit$mu[3] - fit$mu[1],
@@ -126,11 +136,15 @@ sim_asthma_trial <- function(mod,
     pr_ctr_lt0 = pr_ctr_lt0,
     pr_ctr_lt10 = pr_ctr_lt10
   )
+  out_diags <- list(
+    diags = diags
+  )
 
   return(list(
     alpha = list_as_dt(out_alpha),
     trial = list_as_dt(out_arm),
     contr = list_as_dt(out_ctr),
+    diags = list_as_dt(out_diags),
     yobs = dcast(
       array_as_dt(y_obs), ... ~ paste0("y", level),
       value.var = "y_obs"

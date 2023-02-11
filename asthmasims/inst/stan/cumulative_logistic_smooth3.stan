@@ -42,7 +42,7 @@ parameters {
 
 transformed parameters {
   vector[P] beta =  A_qr * (beta_sd * beta_raw);
-  vector[K-1] alpha = alpha_int + X_Isp * theta;
+  vector[K-1] alpha = alpha_int + X_Isp * (theta_sd .* theta);
 }
 
 model {
@@ -50,7 +50,7 @@ model {
   // - beta ~ Normal(0, beta_sd)
   target += std_normal_lpdf(beta_raw) +
             normal_lpdf(alpha_int | 0, alpha_int_sd) +
-            normal_lpdf(theta | 0, theta_sd);
+            normal_lpdf(theta | 0, 1);
   // likelihood
   if (!prior) {
     for(n in 1:N)
