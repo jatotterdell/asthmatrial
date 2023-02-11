@@ -24,7 +24,7 @@ option_list <- list(
         help = "number of simulations to run under each configuration [default %default]", metavar = "number"
     ),
     make_option(c("-f", "--filename"),
-        type = "character", default = "sims_scenario01_",
+        type = "character", default = "sims_scenario03_",
         help = "the output file name for the simulations [default %default]", metavar = "character"
     )
 )
@@ -37,7 +37,7 @@ file_name <- opt$filename
 # ----- PRNGs -----
 
 RNGkind("L'Ecuyer-CMRG")
-set.seed(751359)
+set.seed(357767)
 mc.reset.stream()
 
 
@@ -52,7 +52,7 @@ generate_spline_basis <- function(x, iknots = 9, quants = FALSE, ...) {
 
 # ----- Configs -----
 
-pt1 <- ddgamma(0:100, 2, 1 / 15.8)
+pt1 <- ddgamma(0:100, 6, 1 / 15.9)
 pt1 <- pt1 / sum(pt1)
 alp <- asthmasims:::ord_logit(pt1)
 cfg <- CJ(
@@ -60,11 +60,11 @@ cfg <- CJ(
     n_seq = list(c(100, 150, 200)),
     alpha = list(alp),
     eta = list(
-        c(0, 2.51, 0),
-        c(0, 2.51, 0.477),
-        c(0, 2.51, 1.018),
-        c(0, 2.51, 1.665),
-        c(0, 2.51, 2.51)
+        c(0, 4.173, 0),
+        c(0, 4.173, 0.902),
+        c(0, 4.173, 1.827),
+        c(0, 4.173, 2.870),
+        c(0, 4.173, 4.173)
     ),
     sorted = FALSE
 )
@@ -89,7 +89,7 @@ mdat <- list(
 mod <- list(mmod, mdat)
 
 
-# ----- Loop over configurations and save results -----
+# ------ Loop over configurations and save results ------
 run_row <- seq_len(nrow(cfg))
 for (z in run_row) {
     start_time <- Sys.time()
@@ -103,7 +103,7 @@ for (z in run_row) {
             chains = 1,
             iter_warmup = 500,
             iter_sampling = 1000,
-            adapt_delta = 0.96,
+            adapt_delta = 0.98,
             show_messages = FALSE,
             refresh = 0
         )
@@ -113,12 +113,10 @@ for (z in run_row) {
     resl_contr <- rbindlist(lapply(res, \(x) x[["contr"]]), idcol = "trial")
     resl_trial <- rbindlist(lapply(res, \(x) x[["trial"]]), idcol = "trial")
     resl_yobs <- rbindlist(lapply(res, \(x) x[["yobs"]]), idcol = "trial")
-    resl_diags <- rbindlist(lapply(res, \(x) x[["diags"]]), idcol = "trial")
     resl_alpha[, analysis := as.numeric(analysis)]
     resl_contr[, analysis := as.numeric(analysis)]
     resl_trial[, analysis := as.numeric(analysis)]
     resl_yobs[, analysis := as.numeric(analysis)]
-    resl_diags[, analysis := as.numeric(analysis)]
 
     end_time <- Sys.time()
 
@@ -129,7 +127,6 @@ for (z in run_row) {
             contr = resl_contr,
             trial = resl_trial,
             yobs = resl_yobs,
-            diags = resl_diags,
             runtime = end_time - start_time
         ),
         paste0(
