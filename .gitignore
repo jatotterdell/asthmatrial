@@ -1,3 +1,9 @@
+# ---- Project ----
+
+out
+
+# ---- R ----
+
 # History files
 .Rhistory
 .Rapp.history
