@@ -65,7 +65,7 @@ generate_spline_basis <- function(x, y, iknots = 9, quants = FALSE, ...) {
         knot_seq <- seq(min(x), max(x), length.out = iknots + 2)
         knots <- floor(knot_seq[2:(iknots + 1)])
     }
-    return(iSpline(x, knots = knots, degree = 4, ...))
+    return(iSpline(x, knots = knots, degree = 3, ...))
 }
 
 add_facet_labs <- function(p, labelT = "", labelR = "") {
@@ -119,6 +119,8 @@ add_facet_labs <- function(p, labelT = "", labelR = "") {
 
 ## Aim
 
+We want to explore the use of oscillometry used as part of a  pre-emptive strategy in a sub group of kids with poorly controlled asthma, i.e. kids requiring hospitalistion.
+
 ## Interventions
 
 1. standard therapy control: do daily oscillometery but this isn't used to guide therapy
@@ -148,17 +150,40 @@ The following will assess power and trial operating characteristics assuming a s
 In the trial we will randomly assign up to $n=200$ participants to one of 3 arms.
 For participant $i=1,...,n$ we denote their number of days with symptoms (DWS) as $Y_i\in\{0,1,2,...,100\}$.
 We denote by $X\in\{1,2,3\}$ the possible interventions (standard, maximum, investigational respectively).
-Our interest is in $\mathbb{E}[Y|X]$ and we aim to find that the investigational arm is:
+Our interest is in $\mathbb{E}[Y|X]$ and we aim to decide that the investigational arm is:
 
-- Effective: $\mathbb{E}[Y|X=3] < \mathbb{E}[Y|X=1]$ (investigational arm has lower expected symptom days than standard therapy)
-- Non-inferior: $\mathbb{E}[Y|X=3] < \mathbb{E}[Y|X=2] - 10$ (investigational arm has expected symptom days no more than 10 days higher compared to maximum therapy)
+- Effective: $\mathbb{E}[Y|X=3] < \mathbb{E}[Y|X=1]$ (investigational arm has lower expected symptom days than standard therapy);
+- Non-inferior: $\mathbb{E}[Y|X=3] < \mathbb{E}[Y|X=2] - 10$ (investigational arm has expected symptom days no more than 10 days higher compared to maximum therapy).
 
 The decision criteria are:
 
 - if $\text{Pr}(\mathbb{E}[Y|X=3] < \mathbb{E}[Y|X=1]) > 0.98$ then the investigational aim satisfies effectiveness relative to standard therapy.
 - if $\text{Pr}(\mathbb{E}[Y|X=3] - 10 < \mathbb{E}[Y|X=2]) > 0.98$ then the investiational aim satisfies non-inferiority relative to maximal therapy. 
 
-An ordinal cumulative logistic regression model is used to analyse the data. The model assumes that the distribution of DWS in the population is smooth (e.g. the examples below).
+## Modelling
+
+An ordinal cumulative logistic regression model is used to analyse the data. 
+The model assumes that the distribution of DWS in the population is smooth (e.g. the examples below) and assumes a proportional effect of treatment on the log cumulative odds ratio.
+
+That is, for $Y^\star = Y + 1$,
+$$
+\mathbb{P}[Y^\star \leq k] = \text{logit}^{-1}(\alpha_k - x^\mathsf{T}\beta), \quad k=1,..., 100.
+$$
+for non-decreasing $\alpha$, where
+$$
+\alpha_k = f(k) = \alpha^\star + \sum_{i=1}^m \theta_{i}I_i(k;d, t) 
+$$
+for an I-spline basis function of degree $d$ with knot locations $t$ with coefficients $\theta_i > 0$.
+For the simulations $d=3$ and inner knot locations were set to $\{10, 20, ..., 80, 90\}$ with boundary knots at $\{1, 100\}$.
+
+Priors were,
+$$
+\begin{aligned}
+\beta_j - \beta_l &\sim \text{Normal}(0, \sqrt{2.5}), \text{ for } j\ne l, \text{ subject to } \bar{\beta} = 0 \\
+\alpha^\star &\sim \text{Normal}(0, 100) \\
+\theta_i &\sim \text{Normal}^+(0, 100)
+\end{aligned}
+$$
 
 \clearpage
 
