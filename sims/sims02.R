@@ -24,7 +24,7 @@ option_list <- list(
         help = "number of simulations to run under each configuration [default %default]", metavar = "number"
     ),
     make_option(c("-f", "--filename"),
-        type = "character", default = "sims_scenario02_",
+        type = "character", default = "sims02_",
         help = "the output file name for the simulations [default %default]", metavar = "character"
     )
 )
@@ -46,7 +46,7 @@ mc.reset.stream()
 generate_spline_basis <- function(x, iknots = 9, quants = FALSE, ...) {
     knot_seq <- seq(min(x), max(x), length.out = iknots + 2)
     knots <- floor(knot_seq[2:(iknots + 1)])
-    return(iSpline(x, knots = knots, degree = 4, ...))
+    return(iSpline(x, knots = knots, degree = 3, ...))
 }
 
 
@@ -63,6 +63,7 @@ cfg <- CJ(
         c(0, 3.5, 0),
         c(0, 3.5, 0.95),
         c(0, 3.5, 2),
+        c(0, 3.5, 2.68),
         c(0, 3.5, 3.5)
     ),
     sorted = FALSE
