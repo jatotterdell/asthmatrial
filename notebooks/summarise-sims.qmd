@@ -173,7 +173,7 @@ for non-decreasing $\alpha$, where
 $$
 \alpha_k = f(k) = \alpha^\star + \sum_{i=1}^m \theta_{i}I_i(k;d, t) 
 $$
-for an I-spline basis function of degree $d$ with knot locations $t$ with coefficients $\theta_i > 0$.
+for an I-spline basis of degree $d$ with knot locations $t$ with coefficients $\theta_i > 0$.
 For the simulations $d=3$ and inner knot locations were set to $\{10, 20, ..., 80, 90\}$ with boundary knots at $\{1, 100\}$.
 
 Priors were,
