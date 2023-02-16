@@ -23,7 +23,6 @@ library(asthmasims)
 library(data.table)
 library(cmdstanr)
 library(posterior)
-library(extraDistr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -31,7 +30,6 @@ library(grid)
 library(gridExtra)
 library(gtable)
 library(ggdist)
-library(splines2)
 library(qs)
 library(kableExtra)
 
@@ -40,34 +38,6 @@ theme_set(theme_bw(base_size = 10, base_family = "Palatino"))
 
 ```{r}
 #| label: functions
-ord_logit <- function(x) {
-    return(qlogis(cumsum(x))[-length(x)])
-}
-
-inv_ord_logit <- function(a) {
-    cp <- exp(a) / (1 + exp(a))
-    p <- diff(c(0, cp, 1))
-    return(p)
-}
-
-rvar_inv_ord_logit <- function(a) {
-    cp <- exp(a) / (1 + exp(a))
-    p <- diff(c(rvar(0), cp, rvar(1)))
-    return(p)
-}
-
-generate_spline_basis <- function(x, y, iknots = 9, quants = FALSE, ...) {
-    if (quants) {
-        qseq <- seq(0.025, 0.975, length.out = iknots)
-        knot_seq <- quantile(y, qseq)
-        knots <- floor(knot_seq)
-    } else {
-        knot_seq <- seq(min(x), max(x), length.out = iknots + 2)
-        knots <- floor(knot_seq[2:(iknots + 1)])
-    }
-    return(iSpline(x, knots = knots, degree = 3, ...))
-}
-
 add_facet_labs <- function(p, labelT = "", labelR = "") {
     g <- ggplotGrob(p)
     # Get the positions of the strips in the gtable: t = top, l = left, ...
@@ -135,7 +105,6 @@ Target treatment allocation will be 1:1:1 to three arms.
 
 Symptoms as quantified by the number of days in which any symptoms are reported (out of 100 days). 
 Symptoms reported daily via smart phone.
-
 Interest lies in the difference in the expected number of days in which any symptoms are reported under each intervention.
 
 ## Sample Size
@@ -143,7 +112,7 @@ Interest lies in the difference in the expected number of days in which any symp
 A proposed feasibile sample size is 200 participants.
 The following will assess power and trial operating characteristics assuming a sample size of 200 participants.
 
-\clearpage
+{{< pagebreak >}}
 
 # Analyses
 
@@ -185,7 +154,7 @@ $$
 \end{aligned}
 $$
 
-\clearpage
+{{< pagebreak >}}
 
 # Examples
 
@@ -193,420 +162,115 @@ $$
 
 The following provides an example simulated trial under an assumed population.
 These populations are representative of the kinds of distributions which have been assumed for the trial simulations used to assess operating characteristics.
-Suppose that days with symptoms is distributed as in @fig-example1-dist-days-with-symptoms.
 
-The first 100 participants are randomly assigned to one of three interventions. Sample data is shown in @fig-observed-data1.
+Suppose that days with symptoms is distributed as in @fig-dist-days-with-symptoms-example01.
+The first 100 participants are randomly assigned to one of three interventions. Sample data is shown in @fig-observed-data-example01.
+An ordinal regression model for DWS is inferred from the data which assumes a proportional effect on the cumulative odds of having a lower/higher DWS.
 
-An ordinal regression model for DWS is inferred from the data which assumes a proportional effect on the conditional odds of having a lower/higher DWS.
-The modelled distribution for DWS for each intervention group are in @fig-example1-modelled-dist-dws.
-The posterior mean difference in DWS is in @fig-posterior1-difference-in-means.
+The modelled distribution for DWS for each intervention group are in @fig-modelled-dist-dwsg-example01.
+The posterior mean difference in DWS is in @fig-posterior-difference-in-means-example01.
 In this example trial, the investigational arm is found to be effective to standard therapy and non-inferior to maximum therapy.
 This trial would have ceased recruitment after 100 participants.
 
 ```{r}
-#| label: example1-setup
-mod <- asthmasims:::compile_cmdstanr_mod("cumulative_logistic_smooth3")
-
-pt1 <- ddgamma(0:100, 2, 1 / 15.8)
-pt1 <- pt1 / sum(pt1)
-alp <- qlogis(cumsum(pt1))[-length(pt1)]
-
-bet <- c(2, 2)
-pt2 <- inv_ord_logit(alp + bet[1])
-pt3 <- inv_ord_logit(alp + bet[2])
-
-dtru <- tibble(
-    x = rep(1:3, each = 101),
-    xlab = factor(
-        rep(c("Standard", "Maximum", "Investigational"), each = 101), 
-        levels = c("Standard", "Maximum", "Investigational")),
-    y = rep(0:100, times = 3),
-    p = c(pt1, pt2, pt3)
-) |> 
-    group_by(x) |> 
-    mutate(cp = cumsum(p)) |> 
-    ungroup()
-dtrum <- dtru |>
-    group_by(xlab) |>
-    summarise(m = sum(y * p))
+#| label: run-example01
+source(file.path("examples", "example01.R"))
 ```
 
 ```{r}
-#| label: fig-example1-dist-days-with-symptoms
+#| label: fig-dist-days-with-symptoms-example01
 #| fig-cap: | 
 #|      Example distribution of days with any symptoms 
 #|      for standard care group and investigational group.
 #| fig-height: 2
-ggplot(dtru, aes(x = y, y = p)) + 
-    geom_line(aes(colour = factor(xlab))) +
-    geom_vline(aes(xintercept = dtrum$m[1]), linetype = 2) +
-    geom_vline(aes(xintercept = dtrum$m[2]), linetype = 2, colour = "red") +
-    scale_colour_manual("Intervention", values = c("black", "red", "red")) +
-    labs(x = "Days with symptoms", y = "Proportion") 
+p1
 ```
 
 ```{r}
-#| label: generate-data1
-set.seed(5136)
-n <- 33
-x <- rep(1:3, each = n)
-Xdes <- contr.treatment(3)
-y <- asthmasims:::generate_data_x(x, Xdes, alp, bet)
-y_weights <- y - 1
-Xsp <- generate_spline_basis(1:100, y, 9)
-Xsp <- sweep(Xsp, 2, colMeans(Xsp))
-p <- aggregate(y, by = list(x), \(z) prop.table(table(factor(z, 0:100))))
-
-dobs <- tibble(
-    x = rep(1:3, each = 101),
-    xlab = factor(rep(c("Standard", "Maximum", "Investigational"), each = 101), levels = c("Standard", "Maximum", "Investigational")),
-    y = rep(0:100, times = 3),
-    p = c(p[1, -1], p[2, -1], p[3, -1]),
-) |>
-    group_by(x) |>
-    mutate(cp = cumsum(p)) |>
-    ungroup()
-```
-
-```{r}
-#| label: fig-observed-data1
+#| label: fig-observed-data-example01
 #| fig-cap: Sample distributions of days with symptoms by treatment group.
 #| fig-height: 2
-ggplot(dobs, aes(y, cp, colour = xlab, group = x)) +
-    geom_step() +
-    labs(x = "Days with symptoms", y = "Cumulative proportion", colour = "Intervention") +
-    scale_colour_viridis_d()
+p2
 ```
 
 ```{r}
-#| label: model-data1
-lmdat <- list(
-    N = n * 3,
-    P = 3,
-    x = x,
-    y = y,
-    yc = y - 1,
-    beta_sd = 10 / sqrt(2),
-    prior = 0
-)
-mdat <- c(
-    lmdat,
-    list(
-        K = 101,
-        P_Isp = ncol(Xsp),
-        X_Isp = Xsp,
-        y_weights = 0:100,
-        alpha_int_sd = 100,
-        theta_scale = 10,
-        theta_sd = rep(100, ncol(Xsp))
-    ))
-mdat$beta_sd <- 2.5 / sqrt(2)
-
-snk <- capture.output({
-    res <- mod$sample(
-        data = mdat, 
-        chains = 3, 
-        parallel_chains = 3,
-        adapt_delta = 0.98)
-})
-
-drws <- as_draws_rvars(res$draws(c("alpha", "beta")))
-p1 <- rvar_inv_ord_logit(drws$alpha - drws$beta[1])
-p2 <- rvar_inv_ord_logit(drws$alpha - drws$beta[2])
-p3 <- rvar_inv_ord_logit(drws$alpha - drws$beta[3])
-pd <- tibble(
-    y = rep(0:100, times = 3),
-    p = c(p1, p2, p3),
-    x = rep(1:3, each = 101),
-    xlab = factor(rep(c("Standard", "Maximum", "Investigational"), each = 101), levels = c("Standard", "Maximum", "Investigational")),
-    ptru = c(pt1, pt2, pt3),
-    cptru = c(cumsum(pt1), cumsum(pt2), cumsum(pt3))
-) |>
-    group_by(x, y) |>
-    mutate(
-        med = median(p), 
-        lo = quantile(p, 0.025), 
-        hi = quantile(p, 0.975)
-    ) |>
-    group_by(x) |>
-    mutate(cp = cumsum(p)) |>
-    ungroup()
-pdE <- pd |>
-    group_by(x) |>
-    summarise(Ey = rvar_sum(y * p)) |>
-    ungroup() |>
-    mutate(EyDStandard = Ey - Ey[1], EyDMaximum = Ey - Ey[2])
-```
-
-```{r}
-#| label: fig-example1-modelled-dist-dws
+#| label: fig-modelled-dist-dwsg-example01
 #| fig-cap: | 
-#|      Model estimated distribution of days with symptoms by intervention group. Black points indicate posterior median, and coloured rectanges posterior credible intervals of increasing width. Red line indicates true underlying population distribution. Open points indicate observed sample proportions in each outcome level.
-#| fig-width: 6
+#|      Model estimated distribution of days with symptoms by intervention group. 
+#|      Black points indicate posterior median, and coloured rectanges posterior 
+#|      credible intervals of increasing width. 
+#|      Red line indicates true underlying population distribution. 
+#|      Open points indicate observed sample proportions in each outcome level.
 #| fig-height: 6
-ggplot(pd, aes(x = y, ydist = p)) +
-    facet_wrap( ~ xlab, ncol = 1) +
-    stat_interval(size = 1) +
-    geom_point(aes(y = median(p)), size = 0.5) +
-    geom_line(aes(y = ptru), colour = "red") +
-    geom_point(data = dobs, aes(x = y, y = p), shape = 21, colour = "black") +
-    labs(
-        x = "Days with symptoms", 
-        y = "Proportion",  
-        colour = "Credible interval") +
-    theme(legend.position = "bottom")
+#| fig-width: 6
+p3
 ```
 
 ```{r}
-#| label: fig-posterior1-difference-in-means
+#| label: fig-posterior-difference-in-means-example01
 #| fig-cap: | 
 #|      Posterior difference in average number of days 
 #|      with symptoms for investigational arm vs standard and maximum.
 #| fig-height: 2
-pdE |> 
-    filter(x == 3) |> 
-    pivot_longer(
-        EyDStandard:EyDMaximum, 
-        names_prefix = "EyD", 
-        names_to = "Comparison") |>
-    mutate(
-        Comparison = paste0("Investigational\nvs\n", Comparison)
-    ) |>
-    ggplot(data = _, aes(xdist = value, y = Comparison)) +
-    stat_halfeye(
-      aes(
-        fill =
-          after_stat(cut_cdf_qi(
-            cdf,
-            .width = c(.5, .8, .95, 0.99),
-            labels = scales::percent_format()
-          ))
-      ),
-      adjust = 1, n = 1001, .width = c(0.5, 0.8, 0.95)
-    ) +
-    geom_vline(xintercept = 0, linetype = 2) +
-    scale_fill_brewer(
-      palette = "Reds",
-      direction = -1,
-      na.translate = FALSE
-    ) +
-    labs(
-      x = "Posterior difference in average days with symptoms",
-      fill = "Credible\ninterval"
-    ) 
+p4
 ```
 
 \clearpage
 
 ## Example 2
 
-Suppose that days with symptoms is distributed as in @fig-example2-dist-days-with-symptoms.
-In the standard therapy group (black lines) the average number of days with symptoms is 50 and in the maximal group (red lines), the average number of days with symptoms is 30. 
-The investigational intervention group is in between these two, and is both effective and non-inferior under this setting.
+Suppose that days with symptoms is distributed as in @fig-dist-days-with-symptoms-example02.
 
 The first 100 participants are randomly assigned to one of three interventions. 
-Sample data is shown in @fig-observed-data2.
+Sample data is shown in @fig-observed-data-example02.
 
-The modelled distribution for DWS for each intervention group are in @fig-example2-modelled-dist-dws.
-The posterior mean difference in DWS is in @fig-posterior-difference-in-means2.
+The modelled distribution for DWS for each intervention group are in @fig-modelled-dist-dwsg-example02.
+The posterior mean difference in DWS is in @fig-posterior-difference-in-means-example02.
 
 In this example trial, the investigational arm is found to be effective to standard therapy and non-inferior to maximum therapy.
 This trial would have ceased recruitment after 100 participants.
 
 ```{r}
-#| label: example2-setup
-mod <- asthmasims:::compile_cmdstanr_mod("cumulative_logistic_smooth3")
-lmod <- asthmasims:::compile_cmdstanr_mod("linear_centred")
-
-pt1 <- ddgamma(0:100, 5, 1 / 10.65)
-pt1 <- pt1 / sum(pt1)
-alp <- qlogis(cumsum(pt1))[-length(pt1)]
-
-bet <- c(2, 1.75)
-pt2 <- inv_ord_logit(alp + bet[1])
-pt3 <- inv_ord_logit(alp + bet[2])
-
-dtru <- tibble(
-    x = rep(1:3, each = 101),
-    xlab = factor(rep(c("Standard", "Maximum", "Investigational"), each = 101), levels = c("Standard", "Maximum", "Investigational")),
-    y = rep(0:100, times = 3),
-    p = c(pt1, pt2, pt3)
-) |> 
-    group_by(x) |> 
-    mutate(cp = cumsum(p)) |> 
-    ungroup()
-dtrum <- dtru |>
-    group_by(xlab) |>
-    summarise(m = sum(y * p))
+#| label: run-example02
+source(file.path("examples", "example02.R"))
 ```
 
 ```{r}
-#| label: fig-example2-dist-days-with-symptoms
+#| label: fig-dist-days-with-symptoms-example02
 #| fig-cap: | 
 #|      Example distribution of days with any symptoms 
 #|      for standard care group and investigational group.
 #| fig-height: 2
-ggplot(dtru, aes(x = y, y = p)) + 
-    geom_line(aes(colour = factor(xlab))) +
-    geom_vline(aes(xintercept = dtrum$m[1]), linetype = 2) +
-    geom_vline(aes(xintercept = dtrum$m[2]), linetype = 2, colour = "red") +
-    scale_colour_manual("Intervention", values = c("black", "red", "blue")) +
-    labs(x = "Days with symptoms", y = "Proportion") 
+p1
 ```
 
 ```{r}
-#| label: generate-data2
-set.seed(5136)
-n <- 33
-x <- rep(1:3, each = n)
-Xdes <- contr.treatment(3)
-y <- asthmasims:::generate_data_x(x, Xdes, alp, bet)
-y_weights <- y - 1
-Xsp <- generate_spline_basis(1:100, y, 9)
-Xsp <- sweep(Xsp, 2, colMeans(Xsp))
-p <- aggregate(y, by = list(x), \(z) prop.table(table(factor(z, 0:100))))
-
-dobs <- tibble(
-    x = rep(1:3, each = 101),
-    xlab = factor(rep(c("Standard", "Maximum", "Investigational"), each = 101), levels = c("Standard", "Maximum", "Investigational")),
-    y = rep(0:100, times = 3),
-    p = c(p[1, -1], p[2, -1], p[3, -1]),
-) |>
-    group_by(x) |>
-    mutate(cp = cumsum(p)) |>
-    ungroup()
-```
-
-```{r}
-#| label: fig-observed-data2
+#| label: fig-observed-data-example02
 #| fig-cap: Sample distributions of days with symptoms by treatment group.
 #| fig-height: 2
-ggplot(dobs, aes(y, cp, colour = xlab, group = x)) +
-    geom_step() +
-    labs(x = "Days with symptoms", y = "Cumulative proportion", colour = "Intervention") +
-    scale_colour_viridis_d()
+p2
 ```
 
 ```{r}
-#| label: model-data2
-lmdat <- list(
-    N = n * 3,
-    P = 3,
-    x = x,
-    y = y,
-    yc = y - 1,
-    beta_sd = 10 / sqrt(2),
-    prior = 0
-)
-mdat <- c(
-    lmdat,
-    list(
-        K = 101,
-        P_Isp = ncol(Xsp),
-        X_Isp = Xsp,
-        y_weights = 0:100,
-        alpha_int_sd = 100,
-        theta_scale = 10,
-        theta_sd = rep(100, ncol(Xsp))
-    ))
-mdat$beta_sd <- 2.5 / sqrt(2)
-
-snk <- capture.output({
-    res <- mod$sample(
-        data = mdat, 
-        chains = 3, 
-        parallel_chains = 3,
-        adapt_delta = 0.98)
-    lres <- lmod$sample(
-        data = lmdat, 
-        chains = 3, 
-        parallel_chains = 3)
-})
-
-drws <- as_draws_rvars(res$draws(c("alpha", "beta")))
-p1 <- rvar_inv_ord_logit(drws$alpha - drws$beta[1])
-p2 <- rvar_inv_ord_logit(drws$alpha - drws$beta[2])
-p3 <- rvar_inv_ord_logit(drws$alpha - drws$beta[3])
-pd <- tibble(
-    y = rep(0:100, times = 3),
-    p = c(p1, p2, p3),
-    x = rep(1:3, each = 101),
-    xlab = factor(rep(c("Standard", "Maximum", "Investigational"), each = 101), levels = c("Standard", "Maximum", "Investigational")),
-    ptru = c(pt1, pt2, pt3),
-    cptru = c(cumsum(pt1), cumsum(pt2), cumsum(pt3))
-) |>
-    group_by(x, y) |>
-    mutate(
-        med = median(p), 
-        lo = quantile(p, 0.025), 
-        hi = quantile(p, 0.975)
-    ) |>
-    group_by(x) |>
-    mutate(cp = cumsum(p)) |>
-    ungroup()
-pdE <- pd |>
-    group_by(x) |>
-    summarise(Ey = rvar_sum(y * p)) |>
-    ungroup() |>
-    mutate(EyDStandard = Ey - Ey[1], EyDMaximum = Ey - Ey[2])
-```
-
-```{r}
-#| label: fig-example2-modelled-dist-dws
+#| label: fig-modelled-dist-dwsg-example02
 #| fig-cap: | 
-#|      Model estimated distribution of days with symptoms by intervention group. Black points indicate posterior median, and coloured rectanges posterior credible intervals of increasing width. Red line indicates true underlying population distribution. Open points indicate observed sample proportions in each outcome level.
-#| fig-width: 6
+#|      Model estimated distribution of days with symptoms by intervention group. 
+#|      Black points indicate posterior median, and coloured rectanges posterior 
+#|      credible intervals of increasing width. 
+#|      Red line indicates true underlying population distribution. 
+#|      Open points indicate observed sample proportions in each outcome level.
 #| fig-height: 6
-ggplot(pd, aes(x = y, ydist = p)) +
-    facet_wrap( ~ xlab, ncol = 1) +
-    stat_interval(size = 1) +
-    geom_point(aes(y = median(p)), size = 0.5) +
-    geom_line(aes(y = ptru), colour = "red") +
-    geom_point(data = dobs, aes(x = y, y = p), shape = 21, colour = "black") +
-    labs(
-        x = "Days with symptoms", 
-        y = "Proportion",  
-        colour = "Credible interval") +
-    theme(legend.position = "bottom")
+#| fig-width: 6
+p3
 ```
 
 ```{r}
-#| label: fig-posterior-difference-in-means2
+#| label: fig-posterior-difference-in-means-example02
 #| fig-cap: | 
 #|      Posterior difference in average number of days 
 #|      with symptoms for investigational arm vs standard and maximum.
 #| fig-height: 2
-pdE |> 
-    filter(x == 3) |> 
-    pivot_longer(
-        EyDStandard:EyDMaximum, 
-        names_prefix = "EyD", 
-        names_to = "Comparison") |>
-    mutate(
-        Comparison = paste0("Investigational\nvs\n", Comparison)
-    ) |>
-    ggplot(data = _, aes(xdist = value, y = Comparison)) +
-    stat_halfeye(
-      aes(
-        fill =
-          after_stat(cut_cdf_qi(
-            cdf,
-            .width = c(.5, .8, .95, 0.99),
-            labels = scales::percent_format()
-          ))
-      ),
-      adjust = 1, n = 1001, .width = c(0.5, 0.8, 0.95)
-    ) +
-    geom_vline(xintercept = 0, linetype = 2) +
-    scale_fill_brewer(
-      palette = "Reds",
-      direction = -1,
-      na.translate = FALSE
-    ) +
-    labs(
-      x = "Posterior difference in average days with symptoms",
-      fill = "Credible\ninterval"
-    ) 
+p4
 ```
 
 \clearpage
@@ -618,394 +282,93 @@ Suppose that almost everyone on standard therapy has very poor ashtma control an
 The true model does not satisfy proportional cumulative odds assumption.
 
 ```{r}
-#| label: example-setup3
-pt1 <- dnorm(0:100, 100, 10)
-pt1 <- pt1 / sum(pt1)
-alp1 <- qlogis(cumsum(pt1))[-length(pt1)]
-
-pt2 <- dnorm(0:100, 50, 10)
-pt2 <- pt2 / sum(pt2)
-alp2 <- qlogis(cumsum(pt2))[-length(pt2)]
-pt3 <- dnorm(0:100, 70, 20)
-pt3 <- pt3 / sum(pt3)
-alp3 <- qlogis(cumsum(pt3))[-length(pt3)]
-
-dtru <- tibble(
-    x = rep(1:3, each = 101),
-    xlab = factor(rep(c("Standard", "Maximum", "Investigational"), each = 101), levels = c("Standard", "Maximum", "Investigational")),
-    y = rep(0:100, times = 3),
-    p = c(pt1, pt2, pt3)
-) |> 
-    group_by(x) |> 
-    mutate(cp = cumsum(p)) |> 
-    ungroup()
-dtrum <- dtru |>
-    group_by(xlab) |>
-    summarise(m = sum(y * p))
+#| label: run-example03
+source(file.path("examples", "example03.R"))
 ```
 
 ```{r}
-#| label: fig-example3-dist-days-with-symptoms3
+#| label: fig-dist-days-with-symptoms-example03
 #| fig-cap: | 
 #|      Example distribution of days with any symptoms 
 #|      for standard care group and investigational group.
 #| fig-height: 2
-ggplot(dtru, aes(x = y, y = p)) + 
-    geom_line(aes(colour = factor(xlab))) +
-    geom_vline(aes(xintercept = dtrum$m[1]), linetype = 2) +
-    geom_vline(aes(xintercept = dtrum$m[2]), linetype = 2, colour = "red") +
-    geom_vline(aes(xintercept = dtrum$m[3]), linetype = 2, colour = "blue") +
-    scale_colour_manual("Intervention", values = c("black", "red", "blue")) +
-    labs(x = "Days with symptoms", y = "Proportion") 
-```
-
-
-```{r}
-#| label: generate-data3
-set.seed(5136)
-n <- 33
-x <- rep(1:3, each = n)
-y <- c(
-    asthmasims:::generate_data_eta(alp1, rep(0, n)),
-    asthmasims:::generate_data_eta(alp2, rep(0, n)),
-    asthmasims:::generate_data_eta(alp3, rep(0, n))
-)
-y_weights <- y - 1
-Xsp <- generate_spline_basis(1:100, y, 9)
-Xsp <- sweep(Xsp, 2, colMeans(Xsp))
-p <- aggregate(y, by = list(x), \(z) prop.table(table(factor(z, 0:100))))
-
-dobs <- tibble(
-    x = rep(1:3, each = 101),
-    xlab = factor(rep(c("Standard", "Maximum", "Investigational"), each = 101), levels = c("Standard", "Maximum", "Investigational")),
-    y = rep(0:100, times = 3),
-    p = c(p[1, -1], p[2, -1], p[3, -1]),
-) |>
-    group_by(x) |>
-    mutate(cp = cumsum(p)) |>
-    ungroup()
+p1
 ```
 
 ```{r}
-#| label: fig-observed-data3
+#| label: fig-observed-data-example03
 #| fig-cap: Sample distributions of days with symptoms by treatment group.
 #| fig-height: 2
-ggplot(dobs, aes(y, cp, colour = xlab, group = x)) +
-    geom_step() +
-    labs(x = "Days with symptoms", y = "Cumulative proportion", colour = "Intervention") +
-    scale_colour_viridis_d()
-```
-
-
-```{r}
-#| label: model-data3
-mdat <- list(
-    N = n * 3,
-    P = 3,
-    x = x,
-    y = y,
-    yc = y - 1,
-    beta_sd = 5 / sqrt(2),
-    prior = 0,
-    K = 101,
-    P_Isp = ncol(Xsp),
-    X_Isp = Xsp,
-    y_weights = 0:100,
-    alpha_int_sd = 100,
-    theta_scale = 10,
-    theta_sd = rep(100, ncol(Xsp))
-)
-
-snk <- capture.output({
-    res <- mod$sample(
-        data = mdat, 
-        chains = 3, 
-        parallel_chains = 3,
-        adapt_delta = 0.98)
-})
-
-drws <- as_draws_rvars(res$draws(c("alpha", "beta")))
-p1 <- rvar_inv_ord_logit(drws$alpha - drws$beta[1])
-p2 <- rvar_inv_ord_logit(drws$alpha - drws$beta[2])
-p3 <- rvar_inv_ord_logit(drws$alpha - drws$beta[3])
-pd <- tibble(
-    y = rep(0:100, times = 3),
-    p = c(p1, p2, p3),
-    x = rep(1:3, each = 101),
-    xlab = factor(rep(c("Standard", "Maximum", "Investigational"), each = 101), levels = c("Standard", "Maximum", "Investigational")),
-    ptru = c(pt1, pt2, pt3),
-    cptru = c(cumsum(pt1), cumsum(pt2), cumsum(pt3))
-) |>
-    group_by(x, y) |>
-    mutate(
-        med = median(p), 
-        lo = quantile(p, 0.025), 
-        hi = quantile(p, 0.975)
-    ) |>
-    group_by(x) |>
-    mutate(cp = cumsum(p)) |>
-    ungroup()
-pdE <- pd |>
-    group_by(x) |>
-    summarise(Ey = rvar_sum(y * p)) |>
-    ungroup() |>
-    mutate(EyDStandard = Ey - Ey[1], EyDMaximum = Ey - Ey[2])
+p2
 ```
 
 ```{r}
-#| label: fig-example-modelled-dist-dws3
+#| label: fig-modelled-dist-dwsg-example03
 #| fig-cap: | 
-#|      Model estimated distribution of days with symptoms by intervention group. Black points indicate posterior median, and coloured rectanges posterior credible intervals of increasing width. Red line indicates true underlying population distribution. Open points indicate observed sample proportions in each outcome level.
-#| fig-width: 6
+#|      Model estimated distribution of days with symptoms by intervention group. 
+#|      Black points indicate posterior median, and coloured rectanges posterior 
+#|      credible intervals of increasing width. 
+#|      Red line indicates true underlying population distribution. 
+#|      Open points indicate observed sample proportions in each outcome level.
 #| fig-height: 6
-ggplot(pd, aes(x = y, ydist = p)) +
-    facet_wrap( ~ xlab, ncol = 1) +
-    stat_interval(size = 1) +
-    geom_point(aes(y = median(p)), size = 0.5) +
-    geom_line(aes(y = ptru), colour = "red") +
-    geom_point(data = dobs, aes(x = y, y = p), shape = 21, colour = "black") +
-    labs(
-        x = "Days with symptoms", 
-        y = "Proportion",  
-        colour = "Credible interval") +
-    theme(legend.position = "bottom")
+#| fig-width: 6
+p3
 ```
 
 ```{r}
-#| label: fig-posterior-difference-in-means3
+#| label: fig-posterior-difference-in-means-example03
 #| fig-cap: | 
 #|      Posterior difference in average number of days 
 #|      with symptoms for investigational arm vs standard and maximum.
 #| fig-height: 2
-pdE |> 
-    filter(x == 3) |> 
-    pivot_longer(
-        EyDStandard:EyDMaximum, 
-        names_prefix = "EyD", 
-        names_to = "Comparison") |>
-    mutate(
-        Comparison = paste0("Investigational\nvs\n", Comparison)
-    ) |>
-    ggplot(data = _, aes(xdist = value, y = Comparison)) +
-    stat_halfeye(
-      aes(
-        fill =
-          after_stat(cut_cdf_qi(
-            cdf,
-            .width = c(.5, .8, .95, 0.99),
-            labels = scales::percent_format()
-          ))
-      ),
-      adjust = 1, n = 1001, .width = c(0.5, 0.8, 0.95)
-    ) +
-    geom_vline(xintercept = 0, linetype = 2) +
-    scale_fill_brewer(
-      palette = "Reds",
-      direction = -1,
-      na.translate = FALSE
-    ) +
-    labs(
-      x = "Posterior difference in average days with symptoms",
-      fill = "Credible\ninterval"
-    ) 
+p4
 ```
-
 
 \clearpage
 
 ## Example 4
 
 ```{r}
-#| label: example-setup
-pt1 <- dnorm(0:100, 90, 10)
-pt1 <- pt1 / sum(pt1)
-alp1 <- qlogis(cumsum(pt1))[-length(pt1)]
-
-pt2 <- dnorm(0:100, 50, 10)
-pt2 <- pt2 / sum(pt2)
-alp2 <- qlogis(cumsum(pt2))[-length(pt2)]
-pt3 <- dnorm(0:100, 70, 20)
-pt3 <- pt3 / sum(pt3)
-alp3 <- qlogis(cumsum(pt3))[-length(pt3)]
-
-dtru <- tibble(
-    x = rep(1:3, each = 101),
-    xlab = factor(rep(c("Standard", "Maximum", "Investigational"), each = 101), levels = c("Standard", "Maximum", "Investigational")),
-    y = rep(0:100, times = 3),
-    p = c(pt1, pt2, pt3)
-) |> 
-    group_by(x) |> 
-    mutate(cp = cumsum(p)) |> 
-    ungroup()
-dtrum <- dtru |>
-    group_by(xlab) |>
-    summarise(m = sum(y * p))
+#| label: run-example04
+source(file.path("examples", "example04.R"))
 ```
 
 ```{r}
-#| label: fig-example3-dist-days-with-symptoms
+#| label: fig-dist-days-with-symptoms-example04
 #| fig-cap: | 
 #|      Example distribution of days with any symptoms 
 #|      for standard care group and investigational group.
 #| fig-height: 2
-ggplot(dtru, aes(x = y, y = p)) + 
-    geom_line(aes(colour = factor(xlab))) +
-    geom_vline(aes(xintercept = dtrum$m[1]), linetype = 2) +
-    geom_vline(aes(xintercept = dtrum$m[2]), linetype = 2, colour = "red") +
-    geom_vline(aes(xintercept = dtrum$m[3]), linetype = 2, colour = "blue") +
-    scale_colour_manual("Intervention", values = c("black", "red", "blue")) +
-    labs(x = "Days with symptoms", y = "Proportion") 
-```
-
-
-```{r}
-#| label: generate-data
-set.seed(5136)
-n <- 33
-x <- rep(1:3, each = n)
-y <- c(
-    asthmasims:::generate_data_eta(alp1, rep(0, n)),
-    asthmasims:::generate_data_eta(alp2, rep(0, n)),
-    asthmasims:::generate_data_eta(alp3, rep(0, n))
-)
-y_weights <- y - 1
-Xsp <- generate_spline_basis(1:100, y, 9)
-Xsp <- sweep(Xsp, 2, colMeans(Xsp))
-p <- aggregate(y, by = list(x), \(z) prop.table(table(factor(z, 0:100))))
-
-dobs <- tibble(
-    x = rep(1:3, each = 101),
-    xlab = factor(rep(c("Standard", "Maximum", "Investigational"), each = 101), levels = c("Standard", "Maximum", "Investigational")),
-    y = rep(0:100, times = 3),
-    p = c(p[1, -1], p[2, -1], p[3, -1]),
-) |>
-    group_by(x) |>
-    mutate(cp = cumsum(p)) |>
-    ungroup()
+p1
 ```
 
 ```{r}
-#| label: fig-observed-data
+#| label: fig-observed-data-example04
 #| fig-cap: Sample distributions of days with symptoms by treatment group.
 #| fig-height: 2
-ggplot(dobs, aes(y, cp, colour = xlab, group = x)) +
-    geom_step() +
-    labs(x = "Days with symptoms", y = "Cumulative proportion", colour = "Intervention") +
-    scale_colour_viridis_d()
-```
-
-
-```{r}
-#| label: model-data
-mdat <- list(
-    N = n * 3,
-    P = 3,
-    x = x,
-    y = y,
-    yc = y - 1,
-    beta_sd = 2.5 / sqrt(2),
-    prior = 0,
-    K = 101,
-    P_Isp = ncol(Xsp),
-    X_Isp = Xsp,
-    y_weights = 0:100,
-    alpha_int_sd = 100,
-    theta_scale = 10,
-    theta_sd = rep(100, ncol(Xsp))
-)
-
-snk <- capture.output({
-    res <- mod$sample(
-        data = mdat, 
-        chains = 3, 
-        parallel_chains = 3,
-        adapt_delta = 0.98)
-})
-
-drws <- as_draws_rvars(res$draws(c("alpha", "beta")))
-p1 <- rvar_inv_ord_logit(drws$alpha - drws$beta[1])
-p2 <- rvar_inv_ord_logit(drws$alpha - drws$beta[2])
-p3 <- rvar_inv_ord_logit(drws$alpha - drws$beta[3])
-pd <- tibble(
-    y = rep(0:100, times = 3),
-    p = c(p1, p2, p3),
-    x = rep(1:3, each = 101),
-    xlab = factor(rep(c("Standard", "Maximum", "Investigational"), each = 101), levels = c("Standard", "Maximum", "Investigational")),
-    ptru = c(pt1, pt2, pt3),
-    cptru = c(cumsum(pt1), cumsum(pt2), cumsum(pt3))
-) |>
-    group_by(x, y) |>
-    mutate(
-        med = median(p), 
-        lo = quantile(p, 0.025), 
-        hi = quantile(p, 0.975)
-    ) |>
-    group_by(x) |>
-    mutate(cp = cumsum(p)) |>
-    ungroup()
-pdE <- pd |>
-    group_by(x) |>
-    summarise(Ey = rvar_sum(y * p)) |>
-    ungroup() |>
-    mutate(EyDStandard = Ey - Ey[1], EyDMaximum = Ey - Ey[2])
+p2
 ```
 
 ```{r}
-#| label: fig-example-modelled-dist-dws
+#| label: fig-modelled-dist-dwsg-example04
 #| fig-cap: | 
-#|      Model estimated distribution of days with symptoms by intervention group. Black points indicate posterior median, and coloured rectanges posterior credible intervals of increasing width. Red line indicates true underlying population distribution. Open points indicate observed sample proportions in each outcome level.
-#| fig-width: 6
+#|      Model estimated distribution of days with symptoms by intervention group. 
+#|      Black points indicate posterior median, and coloured rectanges posterior 
+#|      credible intervals of increasing width. 
+#|      Red line indicates true underlying population distribution. 
+#|      Open points indicate observed sample proportions in each outcome level.
 #| fig-height: 6
-ggplot(pd, aes(x = y, ydist = p)) +
-    facet_wrap( ~ xlab, ncol = 1) +
-    stat_interval(size = 1) +
-    geom_point(aes(y = median(p)), size = 0.5) +
-    geom_line(aes(y = ptru), colour = "red") +
-    geom_point(data = dobs, aes(x = y, y = p), shape = 21, colour = "black") +
-    labs(
-        x = "Days with symptoms", 
-        y = "Proportion",  
-        colour = "Credible interval") +
-    theme(legend.position = "bottom")
+#| fig-width: 6
+p3
 ```
 
 ```{r}
-#| label: fig-posterior-difference-in-means
+#| label: fig-posterior-difference-in-means-example04
 #| fig-cap: | 
 #|      Posterior difference in average number of days 
 #|      with symptoms for investigational arm vs standard and maximum.
 #| fig-height: 2
-pdE |> 
-    filter(x == 3) |> 
-    pivot_longer(
-        EyDStandard:EyDMaximum, 
-        names_prefix = "EyD", 
-        names_to = "Comparison") |>
-    mutate(
-        Comparison = paste0("Investigational\nvs\n", Comparison)
-    ) |>
-    ggplot(data = _, aes(xdist = value, y = Comparison)) +
-    stat_halfeye(
-      aes(
-        fill =
-          after_stat(cut_cdf_qi(
-            cdf,
-            .width = c(.5, .8, .95, 0.99),
-            labels = scales::percent_format()
-          ))
-      ),
-      adjust = 1, n = 1001, .width = c(0.5, 0.8, 0.95)
-    ) +
-    geom_vline(xintercept = 0, linetype = 2) +
-    scale_fill_brewer(
-      palette = "Reds",
-      direction = -1,
-      na.translate = FALSE
-    ) +
-    labs(
-      x = "Posterior difference in average days with symptoms",
-      fill = "Credible\ninterval"
-    ) 
+p4
 ```
 
 \clearpage
@@ -1030,14 +393,14 @@ These are reported for each scenario.
 tab <- tribble(
     ~ "Scenario", ~ "Standard", ~ "Maximum", ~ "Investigational",
     1, "30", "10", "10, 15, 20, 25, 30",
-    2, "50", "20", "20, 30, 40, 50",
+    2, "50", "20", "20, 30, 40, 45, 50",
     3, "70", "30", "30, 40, 50, 60, 70"
 )
 kable(tab, booktabs = TRUE) |>
     kable_styling(latex_options = "HOLD_position", font_size = 9)
 ```
 
-\clearpage
+{{< pagebreak >}}
 
 ## Scenario 1
 
@@ -1103,9 +466,9 @@ pd_ctr[,
 
 pd <- melt(sc1_cfg[, .(
     dws = 0:100,
-    Standard = inv_ord_logit(unlist(alpha) + unlist(eta)[1]),
-    Maximum = inv_ord_logit(unlist(alpha) + unlist(eta)[2]),
-    Investigational = inv_ord_logit(unlist(alpha) + unlist(eta)[3])
+    Standard = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[1]),
+    Maximum = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[2]),
+    Investigational = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[3])
 ), keyby = configuration], 
     id.vars = c("configuration", "dws"), 
     variable.name = "Arm")[, Arm := factor(Arm, levels = c("Standard", "Maximum", "Investigational"))]
@@ -1245,9 +608,9 @@ sc2_trial[, Arm := factor(variable, labels = c("Standard", "Maximum", "Investiga
 
 pd <- melt(sc2_cfg[, .(
     dws = 0:100,
-    Standard = inv_ord_logit(unlist(alpha) + unlist(eta)[1]),
-    Maximum = inv_ord_logit(unlist(alpha) + unlist(eta)[2]),
-    Investigational = inv_ord_logit(unlist(alpha) + unlist(eta)[3])
+    Standard = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[1]),
+    Maximum = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[2]),
+    Investigational = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[3])
 ), keyby = configuration], 
     id.vars = c("configuration", "dws"), 
     variable.name = "Arm")[, Arm := factor(Arm, levels = c("Standard", "Maximum", "Investigational"))]
@@ -1302,9 +665,9 @@ pd_ctr[,
 
 pd <- melt(sc2_cfg[, .(
     dws = 0:100,
-    Standard = inv_ord_logit(unlist(alpha) + unlist(eta)[1]),
-    Maximum = inv_ord_logit(unlist(alpha) + unlist(eta)[2]),
-    Investigational = inv_ord_logit(unlist(alpha) + unlist(eta)[3])
+    Standard = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[1]),
+    Maximum = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[2]),
+    Investigational = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[3])
 ), keyby = configuration], 
     id.vars = c("configuration", "dws"), 
     variable.name = "Arm")[, Arm := factor(Arm, levels = c("Standard", "Maximum", "Investigational"))]
@@ -1435,9 +798,9 @@ sc3_trial[, Arm := factor(variable, labels = c("Standard", "Maximum", "Investiga
 
 pd <- melt(sc3_cfg[, .(
     dws = 0:100,
-    Standard = inv_ord_logit(unlist(alpha) + unlist(eta)[1]),
-    Maximum = inv_ord_logit(unlist(alpha) + unlist(eta)[2]),
-    Investigational = inv_ord_logit(unlist(alpha) + unlist(eta)[3])
+    Standard = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[1]),
+    Maximum = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[2]),
+    Investigational = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[3])
 ), keyby = configuration], 
     id.vars = c("configuration", "dws"), 
     variable.name = "Arm")[, Arm := factor(Arm, levels = c("Standard", "Maximum", "Investigational"))]
@@ -1492,9 +855,9 @@ pd_ctr[,
 
 pd <- melt(sc3_cfg[, .(
     dws = 0:100,
-    Standard = inv_ord_logit(unlist(alpha) + unlist(eta)[1]),
-    Maximum = inv_ord_logit(unlist(alpha) + unlist(eta)[2]),
-    Investigational = inv_ord_logit(unlist(alpha) + unlist(eta)[3])
+    Standard = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[1]),
+    Maximum = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[2]),
+    Investigational = asthmasims:::inv_ord_logit(unlist(alpha) + unlist(eta)[3])
 ), keyby = configuration], 
     id.vars = c("configuration", "dws"), 
     variable.name = "Arm")[, Arm := factor(Arm, levels = c("Standard", "Maximum", "Investigational"))]

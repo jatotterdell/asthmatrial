@@ -3,6 +3,7 @@
 OUT = ./out
 SIM = ./sims
 SIM_FILES := $(wildcard $(SIM)/sims*.R)
+R_OPTS = --no-save --no-restore --no-init-file --no-site-file
 
 # Generic Targets ----
 
@@ -26,8 +27,8 @@ $(OUT)/sims03_01.qs: sims/sims03.R
 
 # Notebooks ----
 
-notebooks/asthmatrial-summarise-sims.pdf: notebooks/summarise-sims.qmd
+notebooks/asthmatrial-summarise-sims.pdf: notebooks/summarise-sims.qmd $(shell find examples -type f)
 	quarto render $< --to pdf
 
-notebooks/asthmatrial-summarise-sims.docx: notebooks/summarise-sims.qmd
+notebooks/asthmatrial-summarise-sims.docx: notebooks/summarise-sims.qmd $(shell find examples -type f)
 	quarto render $< --to docx
