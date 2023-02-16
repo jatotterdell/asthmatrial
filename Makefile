@@ -27,7 +27,7 @@ $(OUT)/sims03_01.qs: sims/sims03.R
 # Notebooks ----
 
 notebooks/asthmatrial-summarise-sims.pdf: notebooks/summarise-sims.qmd
-	quarto render $> --to pdf
+	quarto render $< --to pdf
 
 notebooks/asthmatrial-summarise-sims.docx: notebooks/summarise-sims.qmd
-	quarto render $> --to docx
+	quarto render $< --to docx
