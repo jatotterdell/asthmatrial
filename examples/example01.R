@@ -157,12 +157,12 @@ p2 <- ggplot(dobs, aes(y, cp, colour = xlab, group = x)) +
     ) +
     scale_colour_viridis_d()
 
-p3 <- ggplot(pd, aes(x = y, ydist = p)) +
+p3 <- ggplot(pd, aes(x = y, ydist = cp)) +
     facet_wrap(~xlab, ncol = 1) +
     stat_interval(size = 1) +
-    geom_point(aes(y = median(p)), size = 0.5) +
-    geom_line(aes(y = ptru), colour = "red") +
-    geom_point(data = dobs, aes(x = y, y = p), shape = 21, colour = "black") +
+    geom_point(aes(y = median(cp)), size = 0.5) +
+    geom_line(aes(y = cptru), colour = "red") +
+    geom_point(data = dobs, aes(x = y, y = cp), shape = 21, colour = "black") +
     labs(
         x = "Days with symptoms",
         y = "Proportion",
