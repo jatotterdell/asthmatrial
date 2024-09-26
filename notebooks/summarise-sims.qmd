@@ -89,7 +89,7 @@ add_facet_labs <- function(p, labelT = "", labelR = "") {
 
 ## Aim
 
-We want to explore the use of oscillometry used as part of a  pre-emptive strategy in a sub group of kids with poorly controlled asthma, i.e. kids requiring hospitalistion.
+We aim to investigate the use of oscillometry as part of a pre-emptive strategy in kids with poorly controlled asthma, i.e. kids recently requiring hospitalistion.
 
 ## Interventions
 
@@ -99,27 +99,21 @@ We want to explore the use of oscillometry used as part of a  pre-emptive strate
 
 ## Randomisation
 
-Target treatment allocation will be 1:1:1 to three arms.
+Target treatment allocation will be 1:1:1 to the three intervention arms.
 
 ## Primary Outcome
 
-Symptoms as quantified by the number of days in which any symptoms are reported (out of 100 days). 
-Symptoms reported daily via smart phone.
-Interest lies in the difference in the expected number of days in which any symptoms are reported under each intervention.
+The primary outcome will be symptoms as quantified by the number of days in which any symptoms are reported (out of 100 days). Symptoms reported daily via smart phone. Interest lies in the difference in the expected number of days in which any symptoms are reported under each intervention.
 
 ## Sample Size
 
-A proposed feasibile sample size is 200 participants.
-The following will assess power and trial operating characteristics assuming a sample size of 200 participants.
+A proposed feasibile sample size is 200 participants. The following will assess power and trial operating characteristics assuming a sample size of 200 participants.
 
 {{< pagebreak >}}
 
 # Analyses
 
-In the trial we will randomly assign up to $n=200$ participants to one of 3 arms.
-For participant $i=1,...,n$ we denote their number of days with symptoms (DWS) as $Y_i\in\{0,1,2,...,100\}$.
-We denote by $X\in\{1,2,3\}$ the possible interventions (standard, maximum, investigational respectively).
-Our interest is in $\mathbb{E}[Y|X]$ and we aim to decide that the investigational arm is:
+In the trial we will randomly assign up to $n=200$ participants to one of 3 arms. For participant $i=1,...,n$ we denote their number of days with symptoms (DWS) as $Y_i\in\{0,1,2,...,100\}$. We denote by $X\in\{1,2,3\}$ the possible interventions (standard, maximum, investigational respectively). Our interest is in $\mathbb{E}[Y|X]$ and we aim to decide that the investigational arm is:
 
 - Effective: $\mathbb{E}[Y|X=3] < \mathbb{E}[Y|X=1]$ (investigational arm has lower expected symptom days than standard therapy);
 - Non-inferior: $\mathbb{E}[Y|X=3] < \mathbb{E}[Y|X=2] - 10$ (investigational arm has expected symptom days no more than 10 days higher compared to maximum therapy).
@@ -160,17 +154,11 @@ $$
 
 ## Example 1
 
-The following provides an example simulated trial under an assumed population.
-These populations are representative of the kinds of distributions which have been assumed for the trial simulations used to assess operating characteristics.
+The following provides an example simulated trial result under an assumed population. These populations are representative of the kinds of distributions which have been assumed for the trial simulations used to assess operating characteristics.
 
-Suppose that days with symptoms is distributed as in @fig-dist-days-with-symptoms-example01.
-The first 100 participants are randomly assigned to one of three interventions. Sample data is shown in @fig-observed-data-example01.
-An ordinal regression model for DWS is inferred from the data which assumes a proportional effect on the cumulative odds of having a lower/higher DWS.
+Suppose that days with symptoms is distributed as in @fig-dist-days-with-symptoms-example01. The first 100 participants are randomly assigned to one of three interventions. Sample data is shown in @fig-observed-data-example01. An ordinal regression model for DWS is inferred from the data which assumes a proportional effect on the cumulative odds of having a lower/higher DWS.
 
-The modelled distribution for DWS for each intervention group are in @fig-modelled-dist-dwsg-example01.
-The posterior mean difference in DWS is in @fig-posterior-difference-in-means-example01.
-In this example trial, the investigational arm is found to be effective to standard therapy and non-inferior to maximum therapy.
-This trial would have ceased recruitment after 100 participants.
+The modelled distribution for DWS for each intervention group are in @fig-modelled-dist-dwsg-example01. The posterior mean difference in DWS is in @fig-posterior-difference-in-means-example01. In this example trial, the investigational arm is found to be effective to standard therapy and non-inferior to maximum therapy. This trial would have ceased recruitment after 100 participants.
 
 ```{r}
 #| label: run-example01
@@ -200,7 +188,7 @@ p2
 #|      Black points indicate posterior median, and coloured rectanges posterior 
 #|      credible intervals of increasing width. 
 #|      Red line indicates true underlying population distribution. 
-#|      Open points indicate observed sample proportions in each outcome level.
+#|      Open points indicate observed sample cumulative proportions at each outcome level.
 #| fig-height: 6
 #| fig-width: 6
 p3
@@ -221,14 +209,11 @@ p4
 
 Suppose that days with symptoms is distributed as in @fig-dist-days-with-symptoms-example02.
 
-The first 100 participants are randomly assigned to one of three interventions. 
-Sample data is shown in @fig-observed-data-example02.
+The first 100 participants are randomly assigned to one of three interventions. Sample data is shown in @fig-observed-data-example02.
 
-The modelled distribution for DWS for each intervention group are in @fig-modelled-dist-dwsg-example02.
-The posterior mean difference in DWS is in @fig-posterior-difference-in-means-example02.
+The modelled distribution for DWS for each intervention group are in @fig-modelled-dist-dwsg-example02. The posterior mean difference in DWS is in @fig-posterior-difference-in-means-example02.
 
-In this example trial, the investigational arm is found to be effective to standard therapy and non-inferior to maximum therapy.
-This trial would have ceased recruitment after 100 participants.
+In this example trial, the investigational arm is found to be effective to standard therapy and non-inferior to maximum therapy. This trial would have ceased recruitment after 100 participants.
 
 ```{r}
 #| label: run-example02
@@ -258,7 +243,7 @@ p2
 #|      Black points indicate posterior median, and coloured rectanges posterior 
 #|      credible intervals of increasing width. 
 #|      Red line indicates true underlying population distribution. 
-#|      Open points indicate observed sample proportions in each outcome level.
+#|      Open points indicate observed sample cumulative proportions at each outcome level.
 #| fig-height: 6
 #| fig-width: 6
 p3
@@ -276,10 +261,6 @@ p4
 \clearpage
 
 ## Example 3
-
-This is a slightly more interesting, albeit perhaps unrealistic, example.
-Suppose that almost everyone on standard therapy has very poor ashtma control and so expect very high number of days with symptoms.
-The true model does not satisfy proportional cumulative odds assumption.
 
 ```{r}
 #| label: run-example03
@@ -309,7 +290,7 @@ p2
 #|      Black points indicate posterior median, and coloured rectanges posterior 
 #|      credible intervals of increasing width. 
 #|      Red line indicates true underlying population distribution. 
-#|      Open points indicate observed sample proportions in each outcome level.
+#|      Open points indicate observed sample cumulative proportions at each outcome level.
 #| fig-height: 6
 #| fig-width: 6
 p3
@@ -356,7 +337,7 @@ p2
 #|      Black points indicate posterior median, and coloured rectanges posterior 
 #|      credible intervals of increasing width. 
 #|      Red line indicates true underlying population distribution. 
-#|      Open points indicate observed sample proportions in each outcome level.
+#|      Open points indicate observed sample cumulative proportions at each outcome level.
 #| fig-height: 6
 #| fig-width: 6
 p3
@@ -383,9 +364,7 @@ In general:
 - assume that 3 analyses occur at sample sizes of: 100, 150, and 200.
 - enrolment rate has been ignored; given that the primary outcome requires at least 100 days of follow-up to be determined, it's conceivable that many more participants have been enrolled into the study by the time 100 participants have completed follow-up. This is not accounted for in the simulations.
 
-The scenarios (in terms of averae days with symptoms) considered are given in @tbl-scenarios-investigated.
-For data generation it is also necessary to assume a shape of the distribution in addition to the mean.
-These are reported for each scenario.
+The scenarios (in terms of averae days with symptoms) considered are given in @tbl-scenarios-investigated. For data generation it is also necessary to assume a shape of the distribution in addition to the mean. These are reported for each scenario.
 
 ```{r}
 #| label: tbl-scenarios-investigated
@@ -394,7 +373,7 @@ tab <- tribble(
     ~ "Scenario", ~ "Standard", ~ "Maximum", ~ "Investigational",
     1, "30", "10", "10, 15, 20, 25, 30",
     2, "50", "20", "20, 30, 40, 45, 50",
-    3, "70", "30", "30, 40, 50, 60, 70"
+    3, "70", "40", "40, 45, 50, 60, 70"
 )
 kable(tab, booktabs = TRUE) |>
     kable_styling(latex_options = "HOLD_position", font_size = 9)
@@ -406,11 +385,9 @@ kable(tab, booktabs = TRUE) |>
 
 In this scenario, days with symptoms in the population under each intervention were assumed to be as in @fig-dws-dist-scenario1 with differences as in @tbl-effect-size-scenario1.
 
-A summary of the trial power is in @tbl-power-summary-scenario1.
-In the no effect scenario, the decision criteria for effectiveness is satisfied in 5% of trials.
+A summary of the trial power is in @tbl-power-summary-scenario1. In the no effect scenario, the decision criteria for effectiveness is satisfied in 5% of trials (type I error for effectivenss). In the scenario where the investigational arm was better than standard by 10 DWS and worse than maximum therapy by 10 DWS then effectiveness was declared in 94% of trials and non-inferiority in 5% of trials (type I error for non-inferiority). In the scenario where the investigational arm was better than standard by 15 DWS and worse than maximum therapy by 5 DWS then effectiveness was declared in 100% of trials and non-inferiority in 82% of trials.
 
 Summaries of posterior means and probabilities across trials are shown in @fig-dws-posterior-mean-distribution-scenario2, @fig-dws-posterior-mean-difference-distribution-scenario2, and @fig-event-probabilities-scenario2.
-
 
 ```{r}
 #| label: scenario1-files
@@ -538,7 +515,6 @@ dcast(pd_power, configuration ~ analysis, value.var = "Power") |>
     kable_styling(latex_options = "HOLD_position")
 ```
 
-
 ```{r}
 #| label: fig-dws-posterior-mean-distribution-scenario1
 #| fig-cap: Distribution of posterior mean for average days with symptoms across trials by configuration (rows) and analysis (columns).
@@ -587,10 +563,9 @@ grid.arrange(add_facet_labs(p,  "Analysis", "Configuration"))
 
 ## Scenario 2
 
-In this scenario, days with symptoms in the population under each intervention were assumed to be as in @fig-dws-dist-scenario2. In all configurations, the average days with symptoms in the standard intervention group was 50 and in the maximum group was 20. The average DWS in the investigational group varied between 50, 40, 30, and 20.
+In this scenario, days with symptoms in the population under each intervention were assumed to be as in @fig-dws-dist-scenario2. In all configurations, the average days with symptoms in the standard intervention group was 50 and in the maximum group was 20. The average DWS in the investigational group varied between 50, 40, 30, 25, and 20.
 
-A summary of the trial power is in @tbl-power-summary-scenario2.
-In the no effect scenario, the decision criteria for effectiveness is satisfied in 5% of trials.
+A summary of the trial power is in @tbl-power-summary-scenario2. In the no effect scenario, the decision criteria for effectiveness is satisfied in 5% of trials.
 
 Summaries of posterior means and probabilities across trials are shown in @fig-dws-posterior-mean-distribution-scenario2, @fig-dws-posterior-mean-difference-distribution-scenario2, and @fig-event-probabilities-scenario2.
 
@@ -708,6 +683,7 @@ pd_power <- dcast(pd_ctr[, .(
     `Cumulative Power` = mean(CumEvent)
 ), keyby = .(configuration, analysis, Comparison, Event)],
 configuration + Comparison + Event ~ analysis, value.var = c("Marginal Power", "Cumulative Power"))
+pd_power <- merge(pdc[, -3], pd_power, by = c("configuration", "Comparison"))
 pd_power[
     (
         Comparison == "Investigational\nvs standard" & 
@@ -720,10 +696,10 @@ pd_power[
         booktabs = TRUE,
         digits = 2,
         linesep = "",
-        col.names = c("Configuration", "Comparison", "Event", rep(1:3, 2)),
+        col.names = c("Configuration", "Comparison", "Difference in E[DWS]", "Event", rep(1:3, 2)),
     ) |>
     kable_styling(latex_options = "HOLD_position", font_size = 8) |>
-    add_header_above(c(" " = 3, "Marginal power" = 3, "Cumulative power" = 3))
+    add_header_above(c(" " = 4, "Marginal power" = 3, "Cumulative power" = 3))
 ```
 
 ```{r}
@@ -899,6 +875,7 @@ pd_power <- dcast(pd_ctr[, .(
     `Cumulative Power` = mean(CumEvent)
 ), keyby = .(configuration, analysis, Comparison, Event)],
 configuration + Comparison + Event ~ analysis, value.var = c("Marginal Power", "Cumulative Power"))
+pd_power <- merge(pdc[, -3], pd_power, by = c("configuration", "Comparison"))
 pd_power[
     (
         Comparison == "Investigational\nvs standard" & 
@@ -911,10 +888,10 @@ pd_power[
         booktabs = TRUE,
         digits = 2,
         linesep = "",
-        col.names = c("Configuration", "Comparison", "Event", rep(1:3, 2)),
+        col.names = c("Configuration", "Comparison", "Difference in E[DWS]", "Event", rep(1:3, 2)),
     ) |>
     kable_styling(latex_options = "HOLD_position", font_size = 8) |>
-    add_header_above(c(" " = 3, "Marginal power" = 3, "Cumulative power" = 3))
+    add_header_above(c(" " = 4, "Marginal power" = 3, "Cumulative power" = 3))
 ```
 
 ```{r}
@@ -970,5 +947,3 @@ p <- ggplot(pd_ctr, aes(Comparison, Probability)) +
     )
 grid.arrange(add_facet_labs(p,  "Analysis", "Configuration"))
 ```
-
-
